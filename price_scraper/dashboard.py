@@ -31,7 +31,6 @@ df = pd.read_sql(query, connection)
 
 connection.close()
 
-
 df["links_difference"] = df["links_price"] - df["instar_price"]
 df["instar_difference"] = df["instar_price"] - df["links_price"]
 
