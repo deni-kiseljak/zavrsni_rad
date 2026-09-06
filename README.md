@@ -37,4 +37,6 @@ All webapges sell similar products, mostly focused on computers, phones and othe
 
 
 ### Visualisation
-![alt text](price_scraper/data/preview.png "Preview")
+![alt text](price_scraper/data/cheapest-shop.png "Pie chart")
+
+![alt text](price_scraper/data/price-comparison.png "Bar graph")
