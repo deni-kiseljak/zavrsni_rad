@@ -15,18 +15,10 @@ class InstarSpider(scrapy.Spider):
 
     def parse(self, response, **kwargs):
         urls = response.xpath("//*[local-name()='url']/*[local-name()='loc']/text()").getall()
-        # print("URLS---------------------------------------------------\n\n", urls)
         for url in urls[:]:
-            # print(url)
             if "/product/" in url:
                 yield response.follow(url,callback=self.parse_product)
-        # product_urls = [
-        #     url for url in urls
-        #     if "/product/" in url
-        # ]
 
-        # for url in product_urls:
-        #     yield response.follow(url, callback=self.parse_product)
 
     def parse_product(self, response, **kwargs):
         json_ld = response.xpath('//script[@type="application/ld+json"]/text()').getall()

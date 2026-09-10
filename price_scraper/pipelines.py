@@ -29,9 +29,7 @@ class PriceScraperPipeline:
         self.connection.close()
 
     def process_item(self, item, spider):
-
         webshop_id = spider.webshop_id
-
         mpn = item.mpn.strip() if item.mpn else None
 
         if not mpn:
@@ -46,8 +44,6 @@ class PriceScraperPipeline:
             """,
             (mpn,))
         result = self.cursor.fetchone()
-
-
 
         if result:
             product_id = result[0]
@@ -77,5 +73,4 @@ class PriceScraperPipeline:
             (product_id, webshop_id, item.price, item.currency, item.availability, item.url))
 
         self.connection.commit()
-
         return item

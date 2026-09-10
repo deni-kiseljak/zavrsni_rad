@@ -33,41 +33,55 @@ df = pd.read_sql(query, connection)
 
 connection.close()
 
-df["links_difference"] = df["links_price"] - df["instar_price"]
-df["instar_difference"] = df["instar_price"] - df["links_price"]
-df["racunala_difference"] = df["racunala_price"] - df["links_price"]
+df["most_expensive"] = df[["links_price", "instar_price", "racunala_price"]].max(axis=1)
 
-df["links_difference_percent"] = (df["links_difference"] / df["instar_price"] * 100)
-df["instar_difference_percent"] = (df["instar_difference"] / df["instar_price"] * 100)
-df["racunala_difference_percent"] = (df["racunala_difference"] / df["instar_price"] * 100)
+df["links_difference"] = df["links_price"] - df["most_expensive"]
+df["instar_difference"] = df["instar_price"] - df["most_expensive"]
+df["racunala_difference"] = df["racunala_price"] - df["most_expensive"]
+
+df["links_difference_percent"] = ((df["links_price"] - df["most_expensive"])/ df["most_expensive"]* 100)
+df["instar_difference_percent"] = ((df["instar_price"] - df["most_expensive"])/ df["most_expensive"]* 100)
+df["racunala_difference_percent"] = ((df["racunala_price"] - df["most_expensive"])/ df["most_expensive"]* 100)
 
 df["links_difference_percent_display"] = (" " + df["links_difference_percent"].round(2).astype(str) + "%")
 df["instar_difference_percent_display"] = (" " + df["instar_difference_percent"].round(2).astype(str) + "%")
 df["racunala_difference_percent_display"] = (" " + df["racunala_difference_percent"].round(2).astype(str) + "%")
-# df["difference_eur"] = df["difference"].round(2)
 
-df["cheaper"] = df.apply(
-    lambda row: "Links" if row["links_price"] < row["instar_price"] and row["links_price"] < row["racunala_price"]
-    else "Instar" if row["instar_price"] < row["links_price"] and row["instar_price"] < row["racunala_price"]
-    else "Racunala" if row["racunala_price"] < row["links_price"] and row["racunala_price"] < row["instar_price"]
-    else "Same price",
-    axis=1
-)
+def find_cheapest(row):
+    prices = {
+        "Links": row["links_price"],
+        "Instar": row["instar_price"],
+        "Racunala": row["racunala_price"]
+    }
 
-links_cheaper = (df["cheaper"] == "Links").sum()
-instar_cheaper = (df["cheaper"] == "Instar").sum()
-racunala_cheaper = (df["cheaper"] == "Racunala").sum()
-same_price = (df["cheaper"] == "Same price").sum()
+    cheapest_price = min(prices.values())
 
+    cheapest_shops = [
+        shop
+        for shop, price in prices.items()
+        if price == cheapest_price
+    ]
 
-# graph ----------------------------------------------------------------------------------------------------------------
+    if len(cheapest_shops) == 1:
+        return cheapest_shops[0]
+
+    return "Same price"
+
+df["cheapest"] = df.apply(find_cheapest, axis=1)
+
+links_cheapest = (df["cheapest"] == "Links").sum()
+instar_cheapest = (df["cheapest"] == "Instar").sum()
+racunala_cheapest = (df["cheapest"] == "Racunala").sum()
+same_price = (df["cheapest"] == "Same price").sum()
+
+# Bar graph ------------------------------------------------------------------------------------------------------------
 
 fig = px.bar(
     df,
     x="mpn",
     y=["links_price", "instar_price", "racunala_price"],
     barmode="group",
-    title="Price Comparison: Links vs Instar",
+    title="Price Comparison: Links vs Instar vs Racunala.hr",
     hover_data={
         "name": True,
         "links_price": ":.2f",
@@ -79,7 +93,7 @@ fig = px.bar(
         "links_difference_percent_display": True,
         "instar_difference_percent_display": True,
         "racunala_difference_percent_display": True,
-        "cheaper": True
+        "cheapest": True
     }
 
 )
@@ -89,13 +103,9 @@ fig.update_layout(
     yaxis_title="Price (€)"
 )
 
-
-# Dash -----------------------------------------------------------------------------------------------------------------
-
-app = Dash(__name__)
-
+# Pie chart ------------------------------------------------------------------------------------------------------------
 labels = ['Links', 'Instar', 'Racunala.hr', 'Same price']
-values = [links_cheaper, instar_cheaper, racunala_cheaper, same_price]
+values = [links_cheapest, instar_cheapest, racunala_cheapest, same_price]
 
 pie_fig = px.pie(
     names=labels,
@@ -116,13 +126,13 @@ pie_fig.update_layout(
     }
 )
 
+# Dash -----------------------------------------------------------------------------------------------------------------
+
+app = Dash(__name__)
+
 app.layout = html.Div([
     html.H1("Price Comparison Dashboard"),
-    html.P(f"Comparing {len(df)} products available on both webshops."),
-    # html.H2(f"Links cheapest: {links_cheaper}"),
-    # html.H2(f"Instar cheapest: {instar_cheaper}"),
-    # html.H2(f"Racunala.hr cheapest: {racunala_cheaper}"),
-    # html.H2(f"Same price: {same_price}"),
+    html.P(f"Comparing {len(df)} products available on all three webshops."),
     dcc.Graph(
         id="cheapest-pie-chart",
         figure=pie_fig
@@ -159,19 +169,15 @@ app.layout = html.Div([
 )
 
 def update_chart(selected_filter, search_text):
-
     filtered_df = df
 
-    # Price filter
     if selected_filter != "All":
         filtered_df = filtered_df[
-            filtered_df["cheaper"] == selected_filter
+            filtered_df["cheapest"] == selected_filter
         ]
 
-    # Product search
     if search_text:
         search_text = search_text.lower()
-
         filtered_df = filtered_df[
             filtered_df["name"].str.lower().str.contains(search_text,na=False)
             |
@@ -192,7 +198,7 @@ def update_chart(selected_filter, search_text):
             "links_difference_percent_display": True,
             "instar_difference_percent_display": True,
             "racunala_difference_percent_display": True,
-            "cheaper": True
+            "cheapest": True
         }
     )
 
@@ -203,5 +209,4 @@ def update_chart(selected_filter, search_text):
 
     return filtered_fig
 
-if __name__ == "__main__":
-    app.run(debug=True)
+app.run(debug=True)

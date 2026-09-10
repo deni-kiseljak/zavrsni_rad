@@ -8,9 +8,6 @@ from dataclasses import dataclass
 
 @dataclass
 class PriceScraperItem:
-    # define the fields for your item here like:
-    # name: str | None = None
-
     name: str | None = None
     sku: str | None = None
     mpn: str | None = None
