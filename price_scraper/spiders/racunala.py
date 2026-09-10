@@ -1,7 +1,6 @@
 import json
 
 import scrapy
-from scrapy.spiders import SitemapSpider
 from ..items import PriceScraperItem
 
 

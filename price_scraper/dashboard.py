@@ -1,4 +1,3 @@
-# from dash import Dash, dcc, html
 import psycopg2
 import pandas as pd
 import plotly.express as px
